@@ -1,0 +1,10 @@
+node_modules
+dist
+dist-ssr
+.npm-cache
+.cache
+.scratch
+coverage
+*.local
+.DS_Store
+.vite
