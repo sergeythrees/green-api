@@ -1,0 +1,1397 @@
+/*
+ * Telegram messenger layer.
+ *
+ * `@telegram-apps/telegram-ui` supplies the design system: colours, typography,
+ * buttons, inputs, cells, badges and the modal. Its stylesheet is imported first
+ * in `main.tsx`, so everything here is a later, equal-or-higher-specificity
+ * override. The kit's own class names are build-hashed (`tgui-<hash>`), which is
+ * why every override below either targets our own class (added through the
+ * component's `className` prop) or reaches structural descendants from it.
+ *
+ * The tokens and geometry in this file are the contract from
+ * docs/telegram/design-telegram-web.md and docs/telegram/telegram-web-palette.md.
+ */
+
+/* ---------------------------------------------------------------- icon font */
+
+@font-face {
+  font-family: 'icons';
+  /* Fontello «icons» (svg2ttf), 412 глифов в диапазоне U+F101–U+F29C. Файл
+     скопирован из другого проекта пользователя:
+     sergeythemes/sergeythrees.github.io, public/icons-font.woff2. */
+  src: url('../assets/icons.woff2') format('woff2');
+  font-display: block;
+}
+
+/*
+ * Иконки из шрифта. Коды проверены отрисовкой: в этом шрифте нет глифов в
+ * диапазоне U+E9xx (это не tgico), поэтому классические коды Telegram дают
+ * пустоту. Нужные: F125 скрепка, F1CD карандаш, F1CE самолётик, F1C3 микрофон.
+ */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'icons';
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.icon--attach::before { content: '\f125'; }
+.icon--compose::before { content: '\f1cd'; }
+.icon--send::before { content: '\f1ce'; }
+.icon--mic::before { content: '\f1c3'; }
+
+/* ------------------------------------------------------------------ tokens */
+
+/*
+ * Telegram Web palettes, copied from the `day` / `night` theme objects of the
+ * real web build (see telegram-web-palette.md). These are deliberately separate
+ * from `--tgui--*`: our own surfaces (wallpaper, bubbles, ticks, chat rows) read
+ * `--tg-*`, and the bridge at the bottom of this block feeds the same values into
+ * the kit so kit components match.
+ */
+.app-root {
+  --tg-accent: #3390ec;
+  --tg-surface: #ffffff;
+  --tg-body: #ffffff;
+  --tg-bg: #f4f4f5;
+  --tg-text: #000000;
+  --tg-text-secondary: #707579;
+  --tg-text-disabled: #c4c9cc;
+  --tg-border: #dfe1e5;
+  --tg-link: #00488f;
+  --tg-danger: #df3f40;
+  --tg-field-bg: #ffffff;
+  --tg-row-hover: #f3f3f4;
+  --tg-bubble-in: #ffffff;
+  --tg-bubble-out: #e3fee0;
+  --tg-bubble-out-text: #5ca853;
+
+  /* Default `pattern` wallpaper gradient stops, `day` theme. */
+  --tg-wallpaper-1: #dbddbb;
+  --tg-wallpaper-2: #6ba587;
+  --tg-wallpaper-3: #d5d88d;
+  --tg-wallpaper-4: #88b884;
+
+  /* Chat list column: 420px, 340px once the window is ≤1280px (see the media
+     query at the bottom of the token block). */
+  --tg-sidebar-width: 420px;
+  --tg-header-height: 56px;
+
+  /* Translucent pill behind the date separator, over the wallpaper. */
+  --tg-date-chip: rgba(0, 0, 0, 0.28);
+
+  /* Window shape, from the Telegram Web client itself: an 8px inset with 24px
+     rounded columns and a soft shadow. */
+  --tg-page-padding: 8px;
+  --tg-column-radius: 24px;
+  --tg-column-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.1);
+
+  /*
+   * Bridge into the kit. `AppRoot` defines these on its own root class with the
+   * light Telegram defaults; we restate them so kit components take the exact
+   * colours this file uses. A wrapper class would not do: the kit reads the
+   * variables from the nearest ancestor, and both rules sit on the same element.
+   */
+  --tgui--button_color: var(--tg-accent);
+  --tgui--button_text_color: #ffffff;
+  --tgui--bg_color: var(--tg-surface);
+  --tgui--secondary_bg_color: var(--tg-body);
+  --tgui--text_color: var(--tg-text);
+  --tgui--hint_color: var(--tg-text-secondary);
+  --tgui--link_color: var(--tg-link);
+  --tgui--divider: var(--tg-border);
+  /* Chat-row hover in the kit comes from `tertiary_bg_color`; pin it to the
+     Telegram row-hover shade instead of the kit's own grey. */
+  --tgui--tertiary_bg_color: var(--tg-row-hover);
+}
+
+@media screen and (max-width: 1280px) {
+  .app-root {
+    --tg-sidebar-width: 340px;
+  }
+}
+
+/*
+ * Dark theme comes from the OS, exactly like Telegram Web's automatic night
+ * mode and exactly like `AppRoot` with no `appearance` prop. There is no theme
+ * switch in this prototype, so a media query — not a class or `data-*`
+ * attribute — is the single source of truth.
+ */
+@media (prefers-color-scheme: dark) {
+  .app-root {
+    --tg-accent: #8774e1;
+    --tg-surface: #212121;
+    --tg-body: #181818;
+    --tg-bg: #181818;
+    --tg-text: #ffffff;
+    --tg-text-secondary: #aaaaaa;
+    --tg-text-disabled: #707579;
+    --tg-border: #0f0f0f;
+    --tg-link: #8774e1;
+    --tg-danger: #ff595a;
+    --tg-field-bg: #181818;
+    --tg-row-hover: #2b2b2b;
+    --tg-column-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.24);
+    --tg-date-chip: rgba(255, 255, 255, 0.09);
+    --tg-bubble-in: #212121;
+    --tg-bubble-out: #8774e1;
+    --tg-bubble-out-text: #ffffff;
+
+    /* `night` wallpaper gradient stops. */
+    --tg-wallpaper-1: #fec496;
+    --tg-wallpaper-2: #dd6cb9;
+    --tg-wallpaper-3: #962fbf;
+    --tg-wallpaper-4: #4f5bd5;
+  }
+}
+
+/* -------------------------------------------------------------------- base */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* `--font-regular` of Telegram Web K. */
+  font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  /* The tokens live on `.app-root`, so the body needs literal fallbacks for the
+     strip that shows during a viewport overscroll. */
+  background: #f4f4f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #181818;
+  }
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* The kit wrapper is a plain div between #root and our layout, so it has to
+   pass the full height down. */
+.tgui-root {
+  height: 100%;
+}
+
+.app-root {
+  height: 100%;
+  color: var(--tg-text);
+  background: var(--tg-bg);
+}
+
+/* ------------------------------------------------------------------ layout */
+
+/*
+ * Two columns on an 8px inset, both rounded — the shape Telegram Web draws its
+ * window in. The values are the client's own tokens: `--page-chats-padding: 8px`
+ * and `--main-column-border-radius: 24px`, plus its
+ * `--column-box-shadow: 0 0 4px var(--column-box-shadow-color)`.
+ *
+ * Without the inset and the radius the client reads as a flat web page rather
+ * than as the Telegram window it is supposed to look like.
+ */
+.app {
+  display: grid;
+  grid-template-columns: var(--tg-sidebar-width) minmax(0, 1fr);
+  gap: var(--tg-page-padding);
+  width: 100%;
+  height: 100%;
+  padding: var(--tg-page-padding);
+  overflow: hidden;
+  background: var(--tg-body);
+}
+
+/* `minmax(0, 1fr)` on the second column is load-bearing: without it a long
+   unbroken word in a bubble stretches the whole grid wider than the window. */
+.chat,
+.sidebar {
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--tg-surface);
+  border-radius: var(--tg-column-radius);
+  box-shadow: var(--tg-column-shadow);
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Banners are auto-height rows above the conversation; the body grid fills the
+   remaining space and keeps the composer pinned to the bottom. */
+.chat__body {
+  display: grid;
+  grid-template-rows: var(--tg-header-height) minmax(0, 1fr) auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ----------------------------------------------------------------- sidebar */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar__header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 8px 4px 8px;
+}
+
+.sidebar__menu-anchor {
+  position: relative;
+  flex: none;
+}
+
+/* The account menu Telegram opens from the burger. It is a plain anchored panel
+   because the kit has no menu component; the items are the kit `Button`s. */
+.account-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: 264px;
+  padding: 8px;
+  background: var(--tg-surface);
+  border: 1px solid var(--tg-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
+}
+
+.account-menu__head {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 8px 12px;
+}
+
+.account-menu__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.account-menu__name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu__hint {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--tg-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu__item {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* The round accent compose button floating over the list, as in Telegram Web. */
+.sidebar {
+  position: relative;
+}
+
+.sidebar__compose {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 54px;
+  height: 54px;
+  color: #fff;
+  background: var(--tg-accent);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar__compose .icon {
+  font-size: 28px;
+}
+
+.sidebar__brand {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+/* The brand mark is the filled circle+plane icon, tinted with the accent. */
+.logo-mark {
+  flex: none;
+  color: var(--tg-accent);
+}
+
+.sidebar__instance {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The search sits inside the header row now, so it only has to fill what the
+   burger and the logo leave over. */
+.sidebar__search {
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * The search field. The kit has no radius/height prop for `Input`, so the rule
+ * that shapes it has to beat the kit's own wrapper rule
+ * (`.tgui-<base> .tgui-<label>` = two classes); two of our classes match that
+ * specificity and win by source order.
+ */
+.sidebar .sidebar__search-field {
+  height: 42px;
+  /* The kit packs the addon and the text to the very start of the field; the
+     original leaves a full gutter before the magnifier and after the text. */
+  padding: 0 14px;
+  background: var(--tg-field-bg);
+  border-radius: 20px;
+}
+
+.sidebar__search-field > div,
+.sidebar__search-field > span {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.sidebar__search-field input {
+  font-size: 15px;
+  color: var(--tg-text);
+}
+
+/* The kit's placeholder inherits the text colour unless it is told otherwise,
+   which made "Поиск" read as filled-in text rather than as a hint. */
+.sidebar__search-field input::placeholder,
+.composer__field input::placeholder,
+.new-chat__input input::placeholder {
+  color: var(--tg-text-secondary);
+  opacity: 1;
+}
+
+.sidebar__status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 16px 8px;
+  font-size: 13px;
+  color: var(--tg-text-secondary);
+}
+
+.sidebar__status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--tg-accent);
+  border-radius: 50%;
+}
+
+.sidebar__status--stopped .sidebar__status-dot {
+  background: var(--tg-danger);
+}
+
+.sidebar__list {
+  flex: 1;
+  min-height: 0;
+  /* The rows are islands, not full-bleed stripes: Telegram indents the chat list
+     and rounds every row, so the selected one reads as a highlight rather than
+     as a coloured block glued to both edges. */
+  padding: 0 8px 16px;
+  /* Both are load-bearing: without `min-width: 0` a single long preview sizes the
+     whole column to its max-content width (measured: 1118px inside a 420px
+     column), and without clipping that overflow painted over the conversation. */
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar__empty {
+  padding: 24px 16px;
+  margin: 0;
+  text-align: center;
+  color: var(--tg-text-secondary);
+}
+
+/* --------------------------------------------------------------- chat rows */
+
+/*
+ * `Cell` normally draws a 24px inset, 24px gap row. Two of our classes beat the
+ * kit's single-class root rule, so the row can become the full-bleed 72px stripe
+ * Telegram uses; the vertical padding moves into the cell's own CSS variable
+ * because the content column reads it.
+ */
+.sidebar .chat-row {
+  --tgui--cell--middle--padding: 10px 0;
+
+  gap: 12px;
+  min-height: 72px;
+  /* The kit's `Cell` draws a 1px frame, which turns every chat into a stack of
+     cards. Telegram's list is frameless: only the selected row is marked. */
+  border: none;
+  border-radius: 12px;
+  /* `Cell` renders a <button>, and a button's `width: auto` is shrink-to-fit,
+     not "fill the column". Without this the row grew to its preview's max-content
+     width (measured: 1118px inside a 420px column) and painted over the
+     conversation instead of ellipsising. */
+  width: 100%;
+  padding: 0 12px;
+  cursor: pointer;
+  background: transparent;
+}
+
+/* Kit hover and our selected state both land at two classes, so source order
+   (this file loads after the kit's) picks ours. */
+.sidebar .chat-row:hover {
+  background: var(--tg-row-hover);
+}
+
+/*
+ * The kit's `Cell` content column is a flex item without `min-width: 0`, so a
+ * long preview never shrinks and spills over the row — most visibly over the
+ * selected one, whose background ends mid-word. Forcing it on every direct
+ * child is the only handle we have: the kit's own class names are build-hashed.
+ */
+.sidebar .chat-row > * {
+  min-width: 0;
+}
+
+/*
+ * The kit puts the title, the time and the preview into two `h6` rows, each
+ * item wrapped in a span of its own — and *those* wrappers are the flex items,
+ * not the spans this app renders. Styling ours directly had no effect at all,
+ * which is why the time sat glued to the name and long previews were cut off at
+ * the column edge instead of ending in "…".
+ *
+ * So the rows become flex boxes, their direct children become the items, and the
+ * time is pushed to the right edge with `margin-left: auto` — the corner Telegram
+ * Web uses. Our own spans only need to become blocks so the ellipsis applies.
+ */
+/*
+ * The avatar and the delivery ticks must keep their intrinsic width.
+ *
+ * A chat row is a flex line whose only shrinkable member is meant to be the text
+ * column, but the kit's `before`/`after` wrappers are flexible too: one long
+ * unbreakable preview in the last message was enough to over-constrain the line,
+ * and flexbox then took the space out of the 48px avatar instead of the text.
+ * The avatar collapsed to ~10px and the preview box landed on top of it.
+ *
+ * `:has()` is used rather than the kit's hashed class names so the rule keeps
+ * working across kit versions.
+ */
+.sidebar .chat-row > :has(.chat-row__avatar),
+.sidebar .chat-row > :has(.chat-row__ticks),
+.sidebar .chat-row > :has(.chat-row__badge) {
+  flex: none;
+}
+
+.sidebar .chat-row > :has(.chat-row__avatar) .chat-row__avatar {
+  flex: none;
+}
+
+.sidebar .chat-row h6 {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.sidebar .chat-row h6 > span {
+  /* The kit marks its wrappers non-shrinking; `flex` has to be restated or the
+     long preview keeps its max-content width and is only clipped by the parent
+     instead of ending in an ellipsis. The kit also centres this text, which
+     Telegram Web never does — chat list copy is always flush left. */
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-align: start;
+}
+
+.sidebar .chat-row h6 > span:last-child {
+  flex: none;
+  margin-left: auto;
+}
+
+.sidebar .chat-row--active,
+.sidebar .chat-row--active:hover {
+  background: var(--tg-accent);
+}
+
+/*
+ * The kit tints the avatar with the accent, which is exactly the colour of the
+ * selected row behind it, so the initials disappeared into the background. A
+ * translucent veil on the circle restores the contrast without touching the
+ * accent the rest of the row uses.
+ */
+.sidebar .chat-row--active .chat-row__avatar {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar .chat-row--active .chat-row__avatar {
+    background: rgba(0, 0, 0, 0.26);
+  }
+}
+
+/*
+ * Telegram forces every descendant of a selected row to white. The kit paints
+ * the subtitle and the hint through one-class hashed rules, so a descendant
+ * selector (one class + one element) outranks them without `!important`.
+ */
+.chat-row--active,
+.chat-row--active span,
+.chat-row--active time,
+.chat-row--active svg {
+  color: #ffffff;
+}
+
+.chat-row__title {
+  display: block;
+  /* An explicit width beats guessing the kit's flex rules: the item fills the
+     row's content box and only then does the ellipsis have something to cut. */
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-row__time {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.chat-row__preview {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-row__ticks {
+  display: flex;
+  align-items: center;
+  color: var(--tg-text-secondary);
+}
+
+/* On a selected row Telegram inverts the unread badge to white-on-accent. */
+.chat-row--active .chat-row__badge {
+  color: var(--tg-accent);
+  background: #ffffff;
+}
+
+/* ------------------------------------------------------------- chat header */
+
+.chat-header {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  height: var(--tg-header-height);
+  /* Telegram keeps the avatar clear of the window edge: 16px in the real client,
+     not the 8px the field padding of the kit suggested. */
+  padding: 0 12px 0 16px;
+  background: var(--tg-surface);
+  border-bottom: 1px solid var(--tg-border);
+}
+
+.chat-header__avatar {
+  flex: none;
+  margin-left: 4px;
+}
+
+/* The kit draws the acronym inside an `h4` of its own, which the chat list
+   happens to inherit but the header did not: the letters sat off-centre in the
+   circle. Centring the element the kit actually renders fixes both places. */
+.chat-header__avatar h4,
+.chat-row__avatar h4 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+.chat-header__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-header__search {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  background: var(--tg-field-bg);
+  border-radius: 20px;
+}
+
+/* The two controls sat almost on top of each other. Telegram keeps one icon
+   pitch between them and draws them with a 2px stroke. */
+.chat-header__actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-header__actions svg {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.chat-header__cancel {
+  padding: 4px 8px;
+  color: var(--tg-link);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.chat-header__menu-anchor {
+  position: relative;
+}
+
+/* The panel behind the kebab: what the API knows about the peer. */
+.chat-info {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: 240px;
+  padding: 8px 12px;
+  background: var(--tg-surface);
+  border: 1px solid var(--tg-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
+}
+
+.chat-info__row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.chat-info__key {
+  color: var(--tg-text-secondary);
+}
+
+.chat-info__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header__title {
+  overflow: hidden;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--tg-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-header__subtitle {
+  overflow: hidden;
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tg-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- messages */
+
+/*
+ * The wallpaper. Telegram Web K paints a four-stop gradient and its own 507 KB
+ * `pattern.svg` on separate canvases, the doodles through `mix-blend-mode:
+ * soft-light` and inverted in dark themes, both at a theme "intensity" (50 in
+ * `day`, −50 in `night`). We keep the same two layers with our own ≤3 KB tile
+ * from `src/assets/`:
+ *
+ * - the gradient sits at a low opacity over `--tg-body`, so the light theme
+ *   reads as a pale wash instead of a poster and the night theme stays dark;
+ * - the tile is a pseudo-element, so it can be inverted on its own in dark mode
+ *   exactly like the pattern canvas in the real client.
+ */
+.messages {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--tg-body);
+}
+
+.messages__wallpaper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    135deg,
+    var(--tg-wallpaper-1) 0%,
+    var(--tg-wallpaper-2) 35%,
+    var(--tg-wallpaper-3) 70%,
+    var(--tg-wallpaper-4) 100%
+  );
+  background-size: cover;
+  opacity: var(--tg-wallpaper-strength, 0.34);
+}
+
+/*
+ * The doodle pattern, applied the way Telegram applies it: a monochrome vector
+ * tile on a transparent background, whose colour and contrast come only from
+ * `opacity` and `filter` over the coloured gradient underneath. The asset is
+ * black strokes, so the dark theme inverts it to white.
+ *
+ * The tile size is not arbitrary. The source viewBox is 1440x2960 — a tall
+ * sheet, not a square tile — with `stroke-width: 3`, so the original 420px tile
+ * scaled a stroke down to 0.87px, below one device pixel, and the drawing
+ * rendered as a smudge. 760px keeps strokes at ~1.6px.
+ *
+ * Two layers at different scales break the repeat: one sheet is 1440x2960 and
+ * has sparse stretches, so a single layer tiles with visible seams. `auto` on
+ * the second dimension preserves the 1:2 aspect — forcing a square would squash
+ * every drawing.
+ */
+.messages__wallpaper::after {
+  position: absolute;
+  inset: 0;
+  background-image: url('../assets/telegram-pattern.svg'),
+    url('../assets/telegram-pattern.svg');
+  background-position: 0 0, 380px 520px;
+  background-repeat: repeat;
+  background-size: 760px auto, 545px auto;
+  content: '';
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .messages__wallpaper::after {
+    /* Black strokes on a dark wash would be invisible; the night theme draws
+       the same tile in white. */
+    filter: invert(1);
+    opacity: 0.13;
+  }
+}
+
+@media not (prefers-color-scheme: dark) {
+  .messages__wallpaper::after {
+    opacity: 0.12;
+  }
+}
+
+.messages__scroller {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  /* Bottom padding keeps the last bubble's tail off the composer edge. */
+  padding: 8px 0 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Keeps a short conversation glued to the bottom of the pane, like Telegram. */
+.messages__inner {
+  margin-top: auto;
+}
+
+.messages__empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--tg-text-secondary);
+}
+
+/* Centred date pill: 13px text on the row-hover fill, 12px radius. */
+.date-chip {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+/*
+ * The date separator. A flat row-hover fill turned into a big grey blob in dark
+ * mode; Telegram uses a small translucent pill, so the chip gets a dedicated
+ * surface that stays readable over the wallpaper.
+ */
+/*
+ * The separator is a small rounded rectangle with a readable edge, the way the
+ * original draws it. The blur was what made it look like a smudge instead of a
+ * chip sitting on the wallpaper.
+ */
+.date-chip__label {
+  padding: 3px 10px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tg-text-secondary);
+  background: var(--tg-date-chip);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+/* ------------------------------------------------------------- message rows */
+
+.message-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Messages band: 8px side padding. */
+  padding: 0 8px;
+  /*
+   * 2px between the messages of one bundle, 8px between bundles. MessageList
+   * wraps every row in its own div, so a sibling combinator cannot see two rows
+   * at once and the gap is carried by the row itself; `--first` stays later in
+   * the file so it wins for the first row of a bundle.
+   */
+  margin-top: 2px;
+}
+
+.message-row--outgoing {
+  align-items: flex-end;
+}
+
+.message-row--first {
+  margin-top: 8px;
+}
+
+/* ----------------------------------------------------------------- bubbles */
+
+.bubble {
+  position: relative;
+  min-width: 56px;
+  max-width: min(30rem, 85%);
+  padding: 6px 10px 7px;
+  box-shadow: 0 1px 2px rgba(16, 35, 47, 0.15);
+}
+
+/*
+ * Geometry from Telegram Web: 15px radius everywhere with a 5px "tail corner".
+ * The first bubble of a bundle resets its two top corners to 15px, the last its
+ * two bottom corners; the tailed bubble then drops the corner the tail closes.
+ */
+.bubble--incoming {
+  color: var(--tg-text);
+  background: var(--tg-bubble-in);
+  border-radius: 5px 15px 15px 5px;
+}
+
+.bubble--outgoing {
+  color: var(--tg-bubble-out-text);
+  background: var(--tg-bubble-out);
+  border-radius: 15px 5px 5px 15px;
+}
+
+.message-row--first .bubble--incoming {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+.message-row--last .bubble--incoming {
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+}
+
+.message-row--last .bubble--incoming.bubble--tailed {
+  border-bottom-left-radius: 0;
+}
+
+.message-row--first .bubble--outgoing {
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+}
+
+.message-row--last .bubble--outgoing {
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+}
+
+.message-row--last .bubble--outgoing.bubble--tailed {
+  border-bottom-right-radius: 0;
+}
+
+/* 16px / 1.3125, the `--messages-text-size` / `--messages-line-height` pair. */
+.bubble__text {
+  overflow-wrap: anywhere;
+  font-size: 16px;
+  line-height: 1.3125;
+  white-space: pre-wrap;
+}
+
+/*
+ * Links inside a message. Telegram keeps its normal link colour on a light
+ * bubble and turns them white on the dark outgoing bubble, because the dark
+ * outlet bubble is the accent purple.
+ */
+.bubble__link {
+  color: var(--tg-link);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bubble__link {
+    color: #ffffff;
+  }
+}
+
+/*
+ * Timestamp + ticks: a float that hangs off the last line and sits *below* the
+ * text baseline, the way Telegram Web draws it. Aligning it to the line centre
+ * instead — the obvious choice — left it looking welded to the text and made
+ * short bubbles feel heavier than the originals.
+ */
+.bubble__meta {
+  display: flex;
+  float: right;
+  gap: 3px;
+  align-items: center;
+  align-self: flex-end;
+  margin: 4px -2px -3px 6px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.bubble--incoming .bubble__meta {
+  color: var(--tg-text-secondary);
+}
+
+.bubble--outgoing .bubble__meta {
+  color: var(--tg-bubble-out-text);
+}
+
+.bubble__status {
+  display: flex;
+  color: inherit;
+}
+
+/* One grey tick = sent (local `sending` / `sent`); two grey = delivered. */
+.bubble__status--plain {
+  color: var(--tg-text-secondary);
+}
+
+/* Two accent checks = read; a red exclamation = failed / no account. */
+.bubble__status--read {
+  color: var(--tg-accent);
+}
+
+.bubble__status--error {
+  color: var(--tg-danger);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bubble__status--plain,
+  .bubble__status--read {
+    color: #ffffff;
+  }
+}
+
+.bubble__error {
+  max-width: min(30rem, 85%);
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--tg-danger);
+}
+
+/*
+ * The tail is Telegram's exact 11×20 SVG, pushed 8.4px out from the bubble edge
+ * and mirrored for outgoing messages. `currentColor` is set to the bubble fill,
+ * so the SVG path only has to say `fill="currentColor"`.
+ */
+.bubble__tail {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: 11px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.bubble--incoming .bubble__tail {
+  left: -8.4px;
+  color: var(--tg-bubble-in);
+  transform: translateY(1px);
+}
+
+.bubble--outgoing .bubble__tail {
+  right: -8.4px;
+  color: var(--tg-bubble-out);
+  transform: translateY(1px) scaleX(-1);
+}
+
+.bubble__tail svg {
+  display: block;
+  width: 11px;
+  height: 20px;
+}
+
+/* ---------------------------------------------------------------- composer */
+
+.composer {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 12px;
+  background: var(--tg-surface);
+  border-top: 1px solid var(--tg-border);
+}
+
+.composer > div {
+  flex: 1;
+}
+
+/*
+ * 18px radius (vs the kit's 14px): the kit exposes no radius prop for `Input`,
+ * so the shaping rule has to match the specificity of the kit wrapper rule and
+ * win by source order.
+ */
+/*
+ * Telegram's field is a plain filled pill: no outline, no inner border. The
+ * 1px ring we had made the composer look like a form input rather than part of
+ * the message surface.
+ */
+.composer .composer__field {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  background: var(--tg-field-bg);
+  border-radius: 22px;
+}
+
+.composer__field input {
+  font-size: 16px;
+  color: var(--tg-text);
+}
+
+/*
+ * The paperclip is a text glyph in the field's `before` slot: muted, never
+ * shrunk, with its own inset from the pill's left edge and a small gap before
+ * the caret.
+ */
+.composer__field .icon--attach {
+  flex: none;
+  padding-left: 4px;
+  margin-right: 4px;
+  font-size: 22px;
+  color: var(--tg-text-secondary);
+}
+
+/*
+ * The 44px circular accent send button. `Button mode="filled"` gives the accent
+ * background from the `--tgui--button_color` bridge, but the kit only ships
+ * pill-shaped buttons with its own padding — there is no `round`/`icon` variant,
+ * so shape and size are pure CSS here.
+ */
+/* The send control sits *inside* the field in Telegram Web, not beside it. */
+.composer .composer__send {
+  flex: none;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #ffffff;
+  background: var(--tg-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The plane glyph inside the accent circle: white, ~20px, like Telegram Web. */
+.composer .composer__send .icon {
+  font-size: 20px;
+}
+
+.composer .composer__send .icon.icon--send {
+    padding-top: 6px;
+}
+
+
+/* The emoji button Telegram keeps between the caret and the send button. */
+.composer .composer__emoji {
+  flex: none;
+  color: var(--tg-text-secondary);
+}
+
+/* ----------------------------------------------------------------- banners */
+
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--tg-border);
+}
+
+.banner__icon {
+  flex: none;
+}
+
+.banner--warn {
+  background: var(--tg-row-hover);
+}
+
+.banner--error {
+  color: var(--tg-danger);
+  background: var(--tg-row-hover);
+}
+
+.banner--info {
+  color: var(--tg-text-secondary);
+  background: var(--tg-row-hover);
+}
+
+.banner__action {
+  padding: 2px 4px;
+  margin-left: auto;
+  color: var(--tg-link);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ------------------------------------------------------------------ dialog */
+
+/*
+ * Telegram Web opens a centred card, not a bottom sheet, so the shell is ours
+ * and only the controls inside it come from the kit (see NewChatDialog).
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: 16px;
+  background: var(--tg-surface);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+}
+
+.dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog__head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dialog .new-chat__input {
+  height: 44px;
+  padding: 0 12px;
+  background: var(--tg-field-bg);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--tg-border);
+}
+
+.new-chat__input input {
+  font-size: 16px;
+  color: var(--tg-text);
+}
+
+.dialog__error,
+.login__error {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--tg-danger);
+  background: var(--tg-bg);
+  border-radius: 10px;
+}
+
+.dialog__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tg-text-secondary);
+}
+
+.dialog__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ------------------------------------------------------------------- login */
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  overflow-y: auto;
+  background: var(--tg-bg);
+}
+
+.login__card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  background: var(--tg-surface);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.login__brand {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.login__logo {
+  flex: none;
+  color: var(--tg-accent);
+}
+
+.login__title {
+  margin: 0;
+}
+
+.login__subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--tg-text-secondary);
+}
+
+.login__note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tg-text-secondary);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--tg-text-secondary);
+}
+
+/* Same two-class trick as the other fields: the kit's label wrapper rule wins
+   on specificity alone, so the shape needs an equal-specificity, later rule. */
+.field .field__input {
+  height: 44px;
+  padding: 0 12px;
+  background: var(--tg-field-bg);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--tg-border);
+}
+
+.field__input input {
+  font-size: 16px;
+  color: var(--tg-text);
+}
+
+.field__hint {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--tg-text-secondary);
+}
+
+.check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.check__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check__text {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--tg-text);
+  cursor: pointer;
+}
+
+.check__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--tg-text-secondary);
+}
+
+/* -------------------------------------------------- splash and placeholder */
+
+.splash,
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  background: var(--tg-bg);
+}
+
+.placeholder__icon {
+  color: var(--tg-text-disabled);
+}
