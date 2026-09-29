@@ -207,8 +207,8 @@ async function evaluate(expression) {
 }
 
 async function shoot(name) {
-  const result = await send('Page.captureScreenshot', { format: 'png' });
-  const file = `${OUT}/${name}.png`;
+  const result = await send('Page.captureScreenshot', { format: 'webp' });
+  const file = `${OUT}/${name}.webp`;
   writeFileSync(file, Buffer.from(result.data, 'base64'));
   console.log(`saved ${file}`);
 }
